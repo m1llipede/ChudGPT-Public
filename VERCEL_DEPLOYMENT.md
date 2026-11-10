@@ -13,9 +13,11 @@ Vercel hosts the website and HTTPS proxy. The 21M PyTorch model runs on your CUD
 - Output Directory: leave blank.
 - Install Command: leave blank.
 - Add environment variable `CHUDGPT_BACKEND_URL` with the current tunnel origin, such as `https://example.trycloudflare.com` (no trailing slash).
-- No API key is required. Do not add secrets to browser code.
+- Set `CHUDGPT_ALLOWED_ORIGINS` on the backend to the public site origin, for example `https://your-site.vercel.app`. Separate multiple origins with commas.
+- The backend limits generation requests to 30 per client per minute by default. Change this with `CHUDGPT_REQUESTS_PER_MINUTE` and also configure a Cloudflare rate-limit rule for production.
+- A private deployment can set `CHUDGPT_API_TOKEN` and send it as a bearer token. Do not put this secret in browser code; public browser deployments should use the origin and rate-limit controls instead.
 
-Redeploy after changing an environment variable. Public endpoints are `GET /api/status`, `GET /api/info`, `POST /api/chat`, `POST /api/generate`, and `POST /api/clear`.
+Redeploy after changing an environment variable. Public endpoints are `GET /api/status`, `GET /api/info`, `POST /api/chat`, `POST /api/generate`, and `POST /api/clear`. Write endpoints are guarded by the backend rate limit even when no private token is configured.
 
 The repository currently includes the active quick-tunnel address as a temporary fallback. The environment variable takes priority and is still the recommended way to replace the address after a tunnel restart.
 
