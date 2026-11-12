@@ -20,10 +20,10 @@
     "electron:build": "tsc -p tsconfig.electron.json",
     "build": "npm run typecheck && vite build && npm run electron:build",
     "package:win": "npm run build && electron-builder --win nsis portable",
+    "package:mac": "npm run build && electron-builder --mac dmg zip --arm64",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
     "electron-store": "^10.0.0",
     "lucide-react": "^0.468.0",
     "prismjs": "^1.29.0",
@@ -38,11 +38,12 @@
     "@types/prismjs": "^1.26.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
-    "@vitest/coverage-v8": "^2.1.8",
+    "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^5.1.0",
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
-    "electron": "^33.2.1",
-    "electron-builder": "^25.1.8",
+    "electron": "^45.3.1",
+    "electron-builder": "^26.18.0",
     "eslint": "^9.17.0",
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
@@ -51,8 +52,8 @@
     "prettier": "^3.4.2",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.18.1",
-    "vite": "^6.0.5",
-    "vitest": "^2.1.8",
+    "vite": "^7.2.2",
+    "vitest": "^5.1.0",
     "wait-on": "^8.0.1"
   },
   "build": {

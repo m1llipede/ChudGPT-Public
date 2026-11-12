@@ -69,6 +69,14 @@ npm run package:win
 
 This produces an NSIS installer and portable executable under `desktop/release/`.
 
+Apple Silicon macOS (locally supported):
+
+```bash
+npm run package:mac
+```
+
+This runs the full production build and produces an arm64 `.dmg` and `.zip` under `desktop/release/`. Local builds remain unsigned until Apple Developer signing and notarization credentials are configured.
+
 Tagged releases use `.github/workflows/desktop-release.yml` to build independently on native runners:
 
 - Windows: NSIS `.exe` installer and portable `.exe`
