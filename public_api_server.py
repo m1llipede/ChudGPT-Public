@@ -17,13 +17,14 @@ from typing import Literal
 
 import torch
 import uvicorn
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from tokenizers import Tokenizer
 
 from chudlm.checkpoint import load_checkpoint
+from chudlm.request_gate import RequestGate
 from chudlm.emoji_awareness import (
     add_emoji_context,
     emoji_database,
@@ -61,6 +62,7 @@ PUBLIC_VERSION = "20.0"
 DISCORD_BOT_INSTRUCTION = (ROOT / "discord_bot_instruction.txt").read_text(encoding="utf-8").strip()
 DISCORD_SYSTEM_PROMPT = DEFAULT_SYSTEM_PROMPT + " " + DISCORD_BOT_INSTRUCTION
 LOGGER = logging.getLogger("chudgpt-public-api")
+WRITE_PATH_SUFFIXES = ("/chat", "/generate", "/clear", "/sim-step")
 
 _CONTEXT_REFERENCE_RE = re.compile(
     r"\b(?:it|its|that|this|these|those|they|them|their|he|him|his|she|her|"
@@ -1440,13 +1442,37 @@ def create_app(checkpoint: Path, device: str, assistance_enabled: bool = True,
         else None
     )
     app = FastAPI(title="ChudGPT-Public API", version=PUBLIC_VERSION)
+    allowed_origins = [
+        origin.strip() for origin in os.getenv("CHUDGPT_ALLOWED_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=allowed_origins,
         allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
     )
+    gate = RequestGate(
+        int(os.getenv("CHUDGPT_REQUESTS_PER_MINUTE", "30")),
+        os.getenv("CHUDGPT_API_TOKEN", ""),
+    )
+
+    @app.middleware("http")
+    async def protect_generation(request: Request, call_next):
+        protected = request.method == "POST" and request.url.path.endswith(WRITE_PATH_SUFFIXES)
+        if protected and not gate.authorize(request.headers.get("authorization", "")):
+            return JSONResponse({"detail": "A valid bearer token is required."}, status_code=401)
+        if protected:
+            client_id = request.headers.get("cf-connecting-ip") or (request.client.host if request.client else "unknown")
+            allowed, retry_after = gate.allow(client_id)
+            if not allowed:
+                return JSONResponse(
+                    {"detail": "Generation rate limit exceeded. Try again shortly."},
+                    status_code=429,
+                    headers={"Retry-After": str(retry_after)},
+                )
+        return await call_next(request)
 
     @app.get("/api/status")
     @app.get("/api/info")
